@@ -5,7 +5,7 @@ export class Wallet {
 
     data: {
         token: string;
-        transactions: Transaction[];
+        balance: Decimal;
     }[];
 
     constructor(tx?: Transaction) {
@@ -13,7 +13,7 @@ export class Wallet {
             this.data = [
                 {
                     token: tx.token,
-                    transactions: [tx],
+                    balance: new Decimal(tx.amount),
                 }
             ]
         } else {
@@ -24,51 +24,32 @@ export class Wallet {
     add_tx(tx: Transaction) {
         for (let i = 0; i < this.data.length; i++) {
             if (this.data[i].token == tx.token) {
-                this.data[i].transactions.push(tx);
+                let amount = new Decimal(tx.amount);
+                if (tx.transaction_type == TransactionType.DEPOSIT) {
+                    this.data[i].balance = this.data[i].balance.plus(amount);
+                } else {
+                    this.data[i].balance = this.data[i].balance.minus(amount);
+                }
                 return;
             }
         }
 
         this.data.push({
             token: tx.token,
-            transactions: [tx],
+            balance: new Decimal(tx.amount),
         });
     }
 
-    get_balance() {
-        let result = [];
-
-        for (let i = 0; i < this.data.length; i++) {
-
-            let txs = this.data[i].transactions;
-            let balance = new Decimal(0);
-            for (let j = 0; j < txs.length; j++) {
-                let amount = new Decimal(txs[j].amount);
-
-                if (txs[j].transaction_type == TransactionType.DEPOSIT) {
-
-                    balance = balance.plus(amount);
-                } else {
-                    balance = balance.minus(amount);
-                }
-            }
-
-            result.push({
-                token: this.data[i].token,
-                balance: balance.toFixed(6),
-            })
+    is_equal(wallet: Wallet) {
+        if (this.data.length != wallet.data.length) {
+            return false;
         }
 
-        return result;
-    }
-
-    is_equal(wallet: Wallet) {
         for (let i = 0; i < this.data.length; i++) {
-            if (this.data[i].token != wallet.data[i].token) {
-                return false;
-            }
-
-            if (JSON.stringify(this.data[i].transactions) != JSON.stringify(wallet.data[i].transactions)) {
+            // if (this.data[i].token != wallet.data[i].token) {
+            //     return false;
+            // }
+            if (JSON.stringify(this.data[i]) != JSON.stringify(wallet.data[i])) {
                 return false;
             }
         }

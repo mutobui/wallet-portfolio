@@ -1,38 +1,28 @@
 import { parse } from "csv-parse";
 import { Transaction, Wallet } from "../types";
 import * as fs from "fs";
-
-export function parser_data() {
-    console.log("Hello world");
-}
-
-async function read_csv(csvFilePath: string) {
-    return new Promise<Transaction[]>((resolve) => {
-        const headers = ['timestamp', 'transaction_type', 'token', 'amount'];
-
-        const fileContent = fs.readFileSync(csvFilePath, { encoding: 'utf-8' });
-
-        parse(fileContent, {
-            delimiter: ',',
-            columns: headers,
-        }, (error, result: Transaction[]) => {
-            if (error) {
-                console.error(error);
-            }
-            resolve(result);
-        });
-    });
-};
+import axios from "axios";
 
 export async function build_wallet(_path: string) {
-    let txs = await read_csv(_path);
+    return new Promise<Wallet>((resolve) => {
+        let wallet = new Wallet();
 
-    let wallet = new Wallet();
-    txs.slice(1).forEach(tx => {
-        wallet.add_tx(tx);
-    });
+        fs.createReadStream(_path)
+            .pipe(parse({ delimiter: ",", from_line: 2 }))
+            .on('data', function (row) {
+                wallet.add_tx(new Transaction(row[0], row[1], row[2], row[3]));
+            })
+            .on('end', function () {
+                resolve(wallet);
+                console.log('Data loaded')
+            })
+    })
+}
 
-    return wallet;
+export async function get_price(token: string) {
+    let price_api = `https://min-api.cryptocompare.com/data/price?fsym=${token}&tsyms=USD`;
+    const response = await axios.get(price_api);
+    return response.data.USD;
 }
 
 /// Given no parameters, return the latest portfolio value per token in USD
