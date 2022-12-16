@@ -34,9 +34,16 @@ export class Wallet {
             }
         }
 
+        let balance;
+        if (tx.transaction_type == TransactionType.DEPOSIT) {
+            balance = new Decimal(tx.amount);
+        } else {
+            balance = (new Decimal(tx.amount)).mul(-1);
+        }
+
         this.data.push({
             token: tx.token,
-            balance: new Decimal(tx.amount),
+            balance: balance,
         });
     }
 
